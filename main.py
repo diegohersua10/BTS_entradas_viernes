@@ -10,11 +10,11 @@ def send_telegram_alert(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {
         "chat_id": CHAT_ID,
-        "text": message,
-        "parse_mode": "Markdown"
+        "text": message
     }
     try:
         response = requests.post(url, json=payload, timeout=15)
+        print(f"Respuesta de Telegram ({response.status_code}): {response.text}")
         return response.ok
     except Exception as e:
         print(f"Error enviando mensaje a Telegram: {e}")
@@ -47,9 +47,9 @@ def check_tickets():
             
             is_sold_out = "agotado" in content or "soldout" in content or "status-soldout" in content
             
-            if True:
+            if not is_sold_out:
                 print("¡Entradas detectadas! Intentando enviar alerta a Telegram...")
-                sent = send_telegram_alert(f"🚨 ¡ESTO ES UNA PRUEBA! Tu tranquiii: {EVENT_URL}")
+                sent = send_telegram_alert(f"🚨 ¡ENTRADAS DISPONIBLES! Corre a comprar: {EVENT_URL}")
                 if sent:
                     print("¡Alerta enviada exitosamente a Telegram!")
             else:
