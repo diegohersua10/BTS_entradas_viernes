@@ -47,9 +47,9 @@ def check_tickets():
             
             is_sold_out = "agotado" in content or "soldout" in content or "status-soldout" in content
             
-            if not is_sold_out:
+            if True:
                 print("¡Entradas detectadas! Intentando enviar alerta a Telegram...")
-                sent = send_telegram_alert(f"🚨 ¡ENTRADAS DISPONIBLES! Corre a comprar: {EVENT_URL}")
+                sent = send_telegram_alert(f"🚨 ¡ESTO ES UNA PRUEBA! Tu tranquiii: {EVENT_URL}")
                 if sent:
                     print("¡Alerta enviada exitosamente a Telegram!")
             else:
