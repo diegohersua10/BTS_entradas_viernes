@@ -2,8 +2,8 @@ import os
 import requests
 from playwright.sync_api import sync_playwright
 
-TELEGRAM_TOKEN = "8751729052:AAHdAauzEW7qHHsPVrRHoyq5wtWhCfbjJ_I"
-CHAT_ID = "-1004373332483"
+TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
+CHAT_ID = os.environ.get("CHAT_ID")
 EVENT_URL = "https://www.ticketmaster.co/event/bts-world-tour-venta-general-viernes-2-octubre"
 
 def send_telegram_alert(message):
