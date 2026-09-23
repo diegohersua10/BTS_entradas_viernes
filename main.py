@@ -50,7 +50,7 @@ def check_tickets():
             full_html = page.content().lower()
             
             # Conteo de ocurrencias de 'agotado' o 'finalizado'
-            no_available_keywords = ["agotado", "soldout", "sold out", "evento finalizado", "finalizado"]
+            no_available_keywords = ["soldout", "sold out", "evento finalizado", "finalizado"]
             
             # Si alguna de las 4 casillas cambia a 'comprar', 'disponible' o si desaparece la etiqueta 'agotado' de algún bloque
             # Evaluamos si existen elementos interactivos que no contengan la palabra agotado
