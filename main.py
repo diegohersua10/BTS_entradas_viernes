@@ -33,27 +33,28 @@ def check_tickets():
         page = context.new_page()
         page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-        # Solo abortamos imágenes pesadas para no alterar la estructura del texto/clases
         page.route("**/*.{png,jpg,jpeg,svg,woff,woff2}", lambda route: route.abort())
         
         try:
             print("Cargando la página en el navegador...")
             page.goto(EVENT_URL, wait_until="domcontentloaded", timeout=30000)
             
-            # Esperar 5 segundos para que los scripts rendericen el banner 'AGOTADO'
             page.wait_for_timeout(5000)
             
             content = page.content().lower()
             
-            is_sold_out = "agotado" in content or "soldout" in content or "status-soldout" in content
+            # Palabras/frases que indican que NO hay boletas disponibles
+            no_available_keywords = ["agotado", "soldout", "status-soldout", "evento finalizado", "finalizado"]
             
-            if not is_sold_out:
+            is_unavailable = any(keyword in content for keyword in no_available_keywords)
+            
+            if not is_unavailable:
                 print("¡Entradas detectadas! Intentando enviar alerta a Telegram...")
                 sent = send_telegram_alert(f"🚨 ¡ENTRADAS DISPONIBLES! Corre a comprar: {EVENT_URL}")
                 if sent:
                     print("¡Alerta enviada exitosamente a Telegram!")
             else:
-                print("El evento sigue AGOTADO. No se envió alerta.")
+                print("El evento sigue no disponible (Agotado / Finalizado). No se envió alerta.")
                 
         except Exception as e:
             print(f"Error al verificar la página con Playwright: {e}")
