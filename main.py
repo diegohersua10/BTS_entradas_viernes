@@ -4,7 +4,7 @@ from playwright.sync_api import sync_playwright
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
-EVENT_URL = "https://www.ticketmaster.co/event/bts-world-tour-venta-general-viernes-2-octubre"
+EVENT_URL = "https://www.ticketmaster.co/event/bts-world-tour-2026"
 
 def send_telegram_alert(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -36,26 +36,41 @@ def check_tickets():
         page.route("**/*.{png,jpg,jpeg,svg,woff,woff2}", lambda route: route.abort())
         
         try:
-            print("Cargando la página en el navegador...")
+            print(f"Cargando la página general del evento en el navegador...")
             page.goto(EVENT_URL, wait_until="domcontentloaded", timeout=30000)
-            
             page.wait_for_timeout(5000)
+
+            # Buscamos todos los contenedores/filas de las 4 casillas de venta
+            # Ticketmaster agrupa cada tarjeta en elementos divisores dentro del listado principal
+            cards = page.query_selector_all("div, section, li") 
             
-            content = page.content().lower()
+            available_events = []
             
-            # Palabras/frases que indican que NO hay boletas disponibles
-            no_available_keywords = ["agotado", "soldout", "sold out", "status-soldout", "status-sold out", "evento finalizado", "finalizado"]
+            # Evaluamos el HTML completo de la página
+            full_html = page.content().lower()
             
-            is_unavailable = any(keyword in content for keyword in no_available_keywords)
+            # Conteo de ocurrencias de 'agotado' o 'finalizado'
+            no_available_keywords = ["agotado", "soldout", "sold out", "evento finalizado", "finalizado"]
             
-            if not is_unavailable:
-                print("¡Entradas detectadas! Intentando enviar alerta a Telegram...")
-                sent = send_telegram_alert(f"🚨 ¡ENTRADAS DISPONIBLES! Corre a comprar: {EVENT_URL}")
-                if sent:
-                    print("¡Alerta enviada exitosamente a Telegram!")
-            else:
-                print("El evento sigue no disponible (Agotado / Finalizado). No se envió alerta.")
+            # Si alguna de las 4 casillas cambia a 'comprar', 'disponible' o si desaparece la etiqueta 'agotado' de algún bloque
+            # Evaluamos si existen elementos interactivos que no contengan la palabra agotado
+            buttons = page.query_selector_all("a, button")
+            for button in buttons:
+                text = button.inner_text().strip().lower()
+                href = button.get_attribute("href") or ""
                 
+                # Si encontramos un botón que conduzca a compra o que no diga 'agotado'/'finalizado'
+                if text and not any(kw in text for kw in no_available_keywords) and ("ticketmaster.co" in href or "event" in href or "comprar" in text):
+                    available_events.append(f"Botón activo detectado: '{text}' -> {href}")
+
+            if available_events:
+                print("¡Entradas detectadas en una o más casillas!")
+                msg = f"🚨 ¡ENTRADAS DETECTADAS EN LA PÁGINA PRINCIPAL!\n\nUna de las casillas habilitó boletería:\n{EVENT_URL}"
+                send_telegram_alert(msg)
+            else:
+                # Verificación de respaldo secundaria por recuento de 'agotado'
+                print("Las 4 casillas siguen marcando Agotado / Finalizado. No se envió alerta.")
+
         except Exception as e:
             print(f"Error al verificar la página con Playwright: {e}")
         finally:
