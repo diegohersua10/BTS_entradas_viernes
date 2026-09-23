@@ -33,32 +33,41 @@ def check_tickets():
         page = context.new_page()
         page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
 
-        page.route("**/*.{png,jpg,jpeg,svg,woff,woff2}", lambda route: route.abort())
-        
+        # No bloqueamos recursos estáticos para asegurar que el JS y los componentes carguen completos
         try:
             print(f"Cargando la página general del evento en el navegador...")
-            page.goto(EVENT_URL, wait_until="domcontentloaded", timeout=30000)
-            page.wait_for_timeout(5000)
+            page.goto(EVENT_URL, wait_until="networkidle", timeout=30000)
+            page.wait_for_timeout(3000)
 
-            content = page.content().lower()
-
-            # Cuenta cuántas veces aparecen las palabras de no disponibilidad en la página
-            no_available_keywords = ["agotado", "soldout", "sold out", "evento finalizado", "finalizado"]
+            # Buscamos los elementos interactivos o botones dentro del contenedor del evento
+            buttons = page.query_selector_all("button, a.btn, a[class*='btn'], div[role='button']")
             
-            # Buscamos botones o enlaces que digan explícitamente "comprar", "seleccionar" o "entradas"
-            buy_words = ["comprar", "buy", "seleccionar", "entradas disponibles"]
-            has_buy_button = any(word in content for word in buy_words)
+            available_option_found = False
+            found_details = ""
 
-            # Contamos cuántas veces aparece "agotado/finalizado"
-            unavailable_count = sum(content.count(kw) for kw in ["agotado", "finalizado"])
+            for btn in buttons:
+                text = btn.inner_text().strip().lower()
+                
+                # Ignoramos botones del menú superior o footer
+                if not text or any(ignored in text for ignored in ["soporte", "ingresar", "registrarse", "términos", "t&c"]):
+                    continue
+                
+                # Palabras que indican que la casilla sigue cerrada
+                is_disabled_status = any(kw in text for kw in ["agotado", "finalizado", "sold out", "soldout"])
+                
+                # Si encontramos un botón de acción en las tarjetas que NO diga agotado/finalizado
+                # O si aparece un botón explícito de "comprar" / "seleccionar"
+                if any(buy_kw in text for buy_kw in ["comprar", "seleccionar", "disponible", "entradas"]) or (not is_disabled_status and "ver" in text):
+                    available_option_found = True
+                    found_details = text
+                    break
 
-            # Si hay botones de compra explícitos O si el conteo de 'agotado/finalizado' baja de 4
-            if has_buy_button or unavailable_count < 4:
-                print(f"¡Cambio detectado! Palabras 'agotado/finalizado' encontradas: {unavailable_count}")
-                msg = f"🚨 ¡ENTRADAS DETECTADAS EN LA PÁGINA PRINCIPAL!\n\nUna de las casillas cambió de estado:\n{EVENT_URL}"
+            if available_option_found:
+                print(f"¡Oportunidad detectada!: {found_details}")
+                msg = f"🚨 ¡ENTRADAS DETECTADAS EN LA PÁGINA PRINCIPAL!\n\nUna de las casillas habilitó boletería ({found_details}):\n{EVENT_URL}"
                 send_telegram_alert(msg)
             else:
-                print(f"Las 4 casillas siguen agotadas/finalizadas (coincidencias encontradas: {unavailable_count}). No se envió alerta.")
+                print("Todas las casillas leídas siguen en estado 'Agotado' / 'Finalizado'. No se envió alerta.")
 
         except Exception as e:
             print(f"Error al verificar la página con Playwright: {e}")
