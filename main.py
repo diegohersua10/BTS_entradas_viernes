@@ -44,7 +44,7 @@ def check_tickets():
             content = page.content().lower()
             
             # Palabras/frases que indican que NO hay boletas disponibles
-            no_available_keywords = ["agotado", "soldout", "status-soldout", "evento finalizado", "finalizado"]
+            no_available_keywords = ["agotado", "soldout", "sold out", "status-soldout", "status-sold out", "evento finalizado", "finalizado"]
             
             is_unavailable = any(keyword in content for keyword in no_available_keywords)
             
