@@ -40,36 +40,25 @@ def check_tickets():
             page.goto(EVENT_URL, wait_until="domcontentloaded", timeout=30000)
             page.wait_for_timeout(5000)
 
-            # Buscamos todos los contenedores/filas de las 4 casillas de venta
-            # Ticketmaster agrupa cada tarjeta en elementos divisores dentro del listado principal
-            cards = page.query_selector_all("div, section, li") 
-            
-            available_events = []
-            
-            # Evaluamos el HTML completo de la página
-            full_html = page.content().lower()
-            
-            # Conteo de ocurrencias de 'agotado' o 'finalizado'
-            no_available_keywords = ["agotado", "agotados", "soldout", "sold out", "evento finalizado", "finalizado"]
-            
-            # Si alguna de las 4 casillas cambia a 'comprar', 'disponible' o si desaparece la etiqueta 'agotado' de algún bloque
-            # Evaluamos si existen elementos interactivos que no contengan la palabra agotado
-            buttons = page.query_selector_all("a, button")
-            for button in buttons:
-                text = button.inner_text().strip().lower()
-                href = button.get_attribute("href") or ""
-                
-                # Si encontramos un botón que conduzca a compra o que no diga 'agotado'/'finalizado'
-                if text and not any(kw in text for kw in no_available_keywords) and ("ticketmaster.co" in href or "event" in href or "comprar" in text):
-                    available_events.append(f"Botón activo detectado: '{text}' -> {href}")
+            content = page.content().lower()
 
-            if available_events:
-                print("¡Entradas detectadas en una o más casillas!")
-                msg = f"🚨 ¡ENTRADAS DETECTADAS EN LA PÁGINA PRINCIPAL!\n\nUna de las casillas habilitó boletería:\n{EVENT_URL}"
+            # Cuenta cuántas veces aparecen las palabras de no disponibilidad en la página
+            no_available_keywords = ["agotado", "soldout", "sold out", "evento finalizado", "finalizado"]
+            
+            # Buscamos botones o enlaces que digan explícitamente "comprar", "seleccionar" o "entradas"
+            buy_words = ["comprar", "buy", "seleccionar", "entradas disponibles"]
+            has_buy_button = any(word in content for word in buy_words)
+
+            # Contamos cuántas veces aparece "agotado/finalizado"
+            unavailable_count = sum(content.count(kw) for kw in ["agotado", "finalizado"])
+
+            # Si hay botones de compra explícitos O si el conteo de 'agotado/finalizado' baja de 4
+            if has_buy_button or unavailable_count < 4:
+                print(f"¡Cambio detectado! Palabras 'agotado/finalizado' encontradas: {unavailable_count}")
+                msg = f"🚨 ¡ENTRADAS DETECTADAS EN LA PÁGINA PRINCIPAL!\n\nUna de las casillas cambió de estado:\n{EVENT_URL}"
                 send_telegram_alert(msg)
             else:
-                # Verificación de respaldo secundaria por recuento de 'agotado'
-                print("Las 4 casillas siguen marcando Agotado / Finalizado. No se envió alerta.")
+                print(f"Las 4 casillas siguen agotadas/finalizadas (coincidencias encontradas: {unavailable_count}). No se envió alerta.")
 
         except Exception as e:
             print(f"Error al verificar la página con Playwright: {e}")
