@@ -37,7 +37,7 @@ if __name__ == "__main__":
     mensaje_personalizado = (
         "💌 Mensaje personalizado (Programado el 28/09/2026):\n\n"
         "Anii! Hace 1 mes fue el concierto! ¿Puedes creerlooo? Yo aún no JAJA\n\n"
-        "Hoy es 28 de sept, mañana liberan las entradas y tengo un presentimiento de que ambos la lograremos 🤩 pero si no, haré lo posible para que vayas el viernes, lo prometo, sé que irás cueste lo que cueste!!\n\n"
+        "Hoy es 28 de sept, mañana liberan las entradas y tengo un presentimiento de que ambos la lograremos 🤩 pero si no, haré lo posible para que vayas el viernes, lo prometo, sé que irás cueste lo que cueste!!. Pero si no voy yo, quedo reee feliz sabiendo que irás tu, lit me alegraría tantooooo!!\n\n"
         "Ani, siempre te deseo lo mejor y soy tan feliz de saber que irás el sábado y que (con fé) también irás el viernes. Puede que no hablemos nunca más pero siempre seré feliz al verte feliz, te mereces siempre lo más lindo del mundo!\n\n"
         "No sé como estemos dentro de 1 mes, la verdad espero que bien jeje, pero nunca dudes lo mucho que te aprecio y deseo lo mejor. Y me pone feliz el ver cómo cumples tus sueños y metas, estemos en la página que estemos, siempre te estaré apoyando en silencio, lo prometooo\n\n"
         "Disfruta muuuucho el conciertooo! Vendrán más bendiciones para tu vidaaa\n\n"
