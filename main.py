@@ -1,10 +1,9 @@
 import os
+import time
 import requests
-from playwright.sync_api import sync_playwright
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
-EVENT_URL = "https://www.ticketmaster.co/event/bts-world-tour-2026"
 
 def send_telegram_alert(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
@@ -20,59 +19,36 @@ def send_telegram_alert(message):
         print(f"Error enviando mensaje a Telegram: {e}")
         return False
 
-def check_tickets():
-    with sync_playwright() as p:
-        browser = p.chromium.launch(
-            headless=True,
-            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"]
-        )
-        context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
-            viewport={"width": 1280, "height": 720}
-        )
-        page = context.new_page()
-        page.add_init_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
-
-        # No bloqueamos recursos estáticos para asegurar que el JS y los componentes carguen completos
-        try:
-            print(f"Cargando la página general del evento en el navegador...")
-            page.goto(EVENT_URL, wait_until="networkidle", timeout=30000)
-            page.wait_for_timeout(3000)
-
-            # Buscamos los elementos interactivos o botones dentro del contenedor del evento
-            buttons = page.query_selector_all("button, a.btn, a[class*='btn'], div[role='button']")
-            
-            available_option_found = False
-            found_details = ""
-
-            for btn in buttons:
-                text = btn.inner_text().strip().lower()
-                
-                # Ignoramos botones del menú superior o footer
-                if not text or any(ignored in text for ignored in ["soporte", "ingresar", "registrarse", "términos", "t&c"]):
-                    continue
-                
-                # Palabras que indican que la casilla sigue cerrada
-                is_disabled_status = any(kw in text for kw in ["agotado", "finalizado", "sold out", "soldout"])
-                
-                # Si encontramos un botón de acción en las tarjetas que NO diga agotado/finalizado
-                # O si aparece un botón explícito de "comprar" / "seleccionar"
-                if any(buy_kw in text for buy_kw in ["comprar", "seleccionar", "disponible", "entradas"]) or (not is_disabled_status and "ver" in text):
-                    available_option_found = True
-                    found_details = text
-                    break
-
-            if available_option_found:
-                print(f"¡Oportunidad detectada!: {found_details}")
-                msg = f"🚨 ¡ENTRADAS DETECTADAS EN LA PÁGINA PRINCIPAL!\n\nUna de las casillas habilitó boletería ({found_details}):\n{EVENT_URL}"
-                send_telegram_alert(msg)
-            else:
-                print("Todas las casillas leídas siguen en estado 'Agotado' / 'Finalizado'. No se envió alerta.")
-
-        except Exception as e:
-            print(f"Error al verificar la página con Playwright: {e}")
-        finally:
-            browser.close()
-
 if __name__ == "__main__":
-    check_tickets()
+    print("Iniciando secuencia de mensajes...")
+
+    # Mensaje 1: De parte del bot / recordatorio del evento
+    mensaje_bot = (
+        "🤖 [Recordatorio automático del sistema]\n"
+        "¡Hace exactamente 1 mes fue el concierto! Esperamos que lo hayas disfrutado al máximo. 🎶✨"
+    )
+    
+    success1 = send_telegram_alert(mensaje_bot)
+    
+    # Esperamos 3 segundos para que se vea natural en el chat de Telegram
+    time.sleep(3)
+
+    # Mensaje 2: Tu mensaje personalizado con la "prueba" de que se programó hace un mes
+    mensaje_personalizado = (
+        "💌 Mensaje personalizado (Programado el 28/09/2026):\n\n"
+        "Anii! Hace 1 mes fue el concierto! ¿Puedes creerlooo? Yo aún no JAJA\n\n"
+        "Hoy es 28 de sept, mañana liberan las entradas y tengo un presentimiento de que ambos la lograremos 🤩 pero si no, haré lo posible para que vayas el viernes, lo prometo, sé que irás cueste lo que cueste!!\n\n"
+        "Ani, siempre te deseo lo mejor y soy tan feliz de saber que irás el sábado y que (con fé) también irás el viernes. Puede que no hablemos nunca más pero siempre seré feliz al verte feliz, te mereces siempre lo más lindo del mundo!\n\n"
+        "No sé como estemos dentro de 1 mes, la verdad espero que bien jeje, pero nunca dudes lo mucho que te aprecio y deseo lo mejor. Y me pone feliz el ver cómo cumples tus sueños y metas, estemos en la página que estemos, siempre te estaré apoyando en silencio, lo prometooo\n\n"
+        "Disfruta muuuucho el conciertooo! Vendrán más bendiciones para tu vidaaa\n\n"
+        "Pd: Dios, espero que en un mes estemos nice, si no, cuando veas este mensaje me sentiré como un tonto JSJS si te moleste, perdón, no es mi intención :(. Pero pero, si estamos nice, sabes que un mensaje tuyo hablando del concierto o al menos saludando, me alegra todo el año y la vida jojooo\n\n"
+        "Pd2: ¿Sonaron tus canciones sorpresas que queríassss? Cruzo dedos para que así sea 🤞🏽\n\n"
+        "Pd3: Si en algún momento quieres contarle a alguien del concierto o de las otras fechas, sabes que estoy sho. Veré los otros shows que vienen JSJS (admito que a veces veía algunos jijii)"
+    )
+    
+    success2 = send_telegram_alert(mensaje_personalizado)
+
+    if success1 and success2:
+        print("¡Ambos mensajes fueron enviados con éxito al grupo!")
+    else:
+        print("Hubo algún problema enviando los mensajes.")
